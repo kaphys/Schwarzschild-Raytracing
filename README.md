@@ -1,4 +1,4 @@
-Project 3
+# Project 3
 
 For the final project of Computational Physics we encourage you to define your
 own project!
