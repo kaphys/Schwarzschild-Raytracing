@@ -10,50 +10,39 @@ def r_s(M):
 def Phi_g(M, r):
     "Gravitational potential"
     rs = r_s(M)
-    phi = -rs/np.linalg.norm(r)
+    phi = -rs/np.linalg.norm(r, axis=1)  # , keepdims=True)
+    phi[phi < -1] = -1
     return phi
 
 
-def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
-    return vector / np.linalg.norm(vector)
-
-
-def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
-
-            >>> angle_between((1, 0, 0), (0, 1, 0))
-            1.5707963267948966
-            >>> angle_between((1, 0, 0), (1, 0, 0))
-            0.0
-            >>> angle_between((1, 0, 0), (-1, 0, 0))
-            3.141592653589793
-    """
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+def angle_rowwise(A, B):
+    p1 = np.einsum('ij,ij->i', A, B)
+    p2 = np.linalg.norm(A, axis=1)
+    p3 = np.linalg.norm(B, axis=1)
+    p4 = p1 / (p2*p3)
+    return np.arccos(np.clip(p4, -1.0, 1.0))
 
 
 def matrix_elements(r, k, Phi):
     "Matrix elements from the paper"
+    psi = angle_rowwise(r, k)
 
-    psi = angle_between(r, k)
-
-    rnorm = np.linalg.norm(r)
-    knorm = np.linalg.norm(k)
+    rnorm = np.linalg.norm(r, axis=1)
+    knorm = np.linalg.norm(k, axis=1)
 
     y11 = 2*knorm*Phi/rnorm*(1 + Phi)*np.cos(psi)
     y12 = 2*(1 + Phi)
     y21 = knorm**2 * Phi / rnorm**2 * (1 + (3 + 4*Phi)*np.cos(psi)**2)
-    y22 = -y11  # 2*knorm*Phi/rnorm * np.cos(psi)
+    y22 = -y11
     return (y11, y12, y21, y22)
 
 
 def gr(r, k, Phi):
     "Right hand side of the diffential eqaution for vector r "
     (y11, y12, _, _) = matrix_elements(r, k, Phi)
-    g1 = y11*r + y12*k
 
+    g1 = y11*r.T + y12*k.T
+    g1 = g1.T
     return g1
 
 
@@ -61,8 +50,9 @@ def gk(r, k, Phi):
     "Right hand side of the diffential eqaution for vector k "
 
     (_, _, y21, y22) = matrix_elements(r, k, Phi)
-    g2 = y21*r + y22*k
 
+    g2 = y21*r.T + y22*k.T
+    g2 = g2.T
     return g2
 
 
