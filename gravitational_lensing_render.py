@@ -10,6 +10,7 @@ start_time = time.time()
 GREY = ([150, 150, 150])
 WHITE = ([255, 255, 255])
 
+
 def colorangles(ray):
     """
     angle at origin;
@@ -29,7 +30,7 @@ def colorangles(ray):
     phi = np.arccos(yn)
     theta = m.atan2(zn, xn)
 
-    switch = (int(20*theta/np.pi) + int(20*phi/np.pi))% 2 == 0
+    switch = (int(20*theta/np.pi) + int(20*phi/np.pi)) % 2 == 0
     if switch == 0:
         bg_color = GREY
     else:
@@ -37,9 +38,13 @@ def colorangles(ray):
 
     return bg_color
 
+
 # Window dimensions
-W = 50
-H = 50
+W = 300
+H = 300
+
+# amount of rays
+N_r = W*H
 
 # Camera settings
 S_RATIO = 1 / 50
@@ -54,12 +59,11 @@ ScreenWidth = 4*M
 ScreenHeigth = ScreenWidth
 
 # Iterations
-STEPS = 100
-SIZE = 0.1
+STEPS = 2000
+SIZE = 0.01
 
 # Blackhole color
 BLACK = [0, 0, 0]
-N_r = W*H
 
 
 X, Y = np.meshgrid(np.arange(-W/2, W/2), np.arange(-H/2, H/2))
@@ -75,41 +79,25 @@ p = R0 - np.array(OBSERVER)
 k0 = p/np.linalg.norm(p, axis=1, keepdims=True)
 
 
-N = 2000
-h = 0.01
-r = np.zeros((N_r, 3))
-k = np.zeros((N_r, 3))
-
-r[:, :] = R0
-k[:, :] = k0
-
-norm_dist = np.linalg.norm(r[:, :], axis=1)
-ray_index = np.zeros(N_r)
-
-Tr = np.ones(N_r, dtype=bool)
-Fa = np.zeros(N_r, dtype=bool)
-booal = norm_dist - 2*M > 0.1
-
-ray_index = np.where(booal, Tr, Fa)
+S = np.zeros((N_r, 6))
 
 
-light_source = np.array([0, 0, -5])
+S[:, 0:3] = R0
+S[:, 3:6] = k0
+
 
 # use Runge-Kutta to trace the ray
-for n in range(0, N-1):
+for n in range(0, STEPS-1):
 
-    save_r = r[:, :]
-    save_k = k[:, :]
-    Phi = Phi_g(M, r[:, :])
-    r[:, :] = rk_4step_r(gr, h, save_r, save_k, Phi)
-    k[:, :] = rk_4step_k(gk, h, save_r, save_k, Phi)
+    Phi = Phi_g(M, S[:, 0:3])
+    S = RK4F(ray_equation, S, SIZE, Phi)
 
 
-norm_dist = np.linalg.norm(r[:, :], axis=1)
+norm_dist = np.linalg.norm(S[:, 0:3], axis=1)
 
 # check collision event horizon
 ray_index = np.where(np.abs(norm_dist) >= 2*M + 0.1,
-                    True, False)
+                     True, False)
 
 pixel_mask = np.reshape(ray_index, (-1, W))
 
@@ -126,8 +114,9 @@ index = 0
 for i in range(W):
     for j in range(H):
         if pixel_mask[i, j] == True:
-            b[i, j, :] = colorangles(r[index, :])
+            b[i, j, :] = colorangles(S[index, 0:3])
         index += 1
+
 
 im = Image.fromarray(b)
 im.show()
