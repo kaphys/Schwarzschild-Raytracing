@@ -23,8 +23,11 @@ def angle_rowwise(A, B):
     return np.arccos(np.clip(p4, -1.0, 1.0))
 
 
-def matrix_elements(r, k, Phi):
-    "Matrix elements from the paper"
+def ray_equation(S, Phi):
+    r = S[:, 0:3]
+    k = S[:, 3:6]
+    dxdy = np.zeros(S.shape)
+
     psi = angle_rowwise(r, k)
 
     rnorm = np.linalg.norm(r, axis=1)
@@ -34,45 +37,20 @@ def matrix_elements(r, k, Phi):
     y12 = 2*(1 + Phi)
     y21 = knorm**2 * Phi / rnorm**2 * (1 + (3 + 4*Phi)*np.cos(psi)**2)
     y22 = -y11
-    return (y11, y12, y21, y22)
-
-
-def gr(r, k, Phi):
-    "Right hand side of the diffential eqaution for vector r "
-    (y11, y12, _, _) = matrix_elements(r, k, Phi)
 
     g1 = y11*r.T + y12*k.T
-    g1 = g1.T
-    return g1
-
-
-def gk(r, k, Phi):
-    "Right hand side of the diffential eqaution for vector k "
-
-    (_, _, y21, y22) = matrix_elements(r, k, Phi)
-
     g2 = y21*r.T + y22*k.T
-    g2 = g2.T
-    return g2
+    dxdy[:, 0:3] = g1.T
+    dxdy[:, 3:6] = g2.T
+
+    return dxdy
 
 
-def rk_4step_r(func, h, r, k, Phi):
-    "Uses runge kutta method to calculate next step for r "
+def RK4F(func, S, h, Phi):
 
-    s1 = h*func(r, k, Phi)
-    s2 = h*func(r + s1/2 + h/2, k + s1/2, Phi)
-    s3 = h*func(r + s2/2 + h/2, k + s2/2, Phi)
-    s4 = h*func(r + s3 + h, k + s3, Phi)
+    s1 = h*func(S, Phi)
+    s2 = h*func(S + s1/2.0 + h/2, Phi)
+    s3 = h*func(S + s2/2.0 + h/2, Phi)
+    s4 = h*func(S + s3 + h, Phi)
 
-    return r + s1/6 + s2/3 + s3/3 + s4/6
-
-
-def rk_4step_k(func, h, r, k, Phi):
-    "Uses runge kutta method to calculate next step for k "
-
-    s1 = h*func(r, k, Phi)
-    s2 = h*func(r + s1/2 + h/2, k + s1/2, Phi)
-    s3 = h*func(r + s2/2 + h/2, k + s2/2, Phi)
-    s4 = h*func(r + s3 + h, k + s3, Phi)
-
-    return k + s1/6 + s2/3 + s3/3 + s4/6
+    return S + s1/6 + s2/3 + s3/3 + s4/6
