@@ -1,27 +1,22 @@
 import numpy as np
 import math as m
 from PIL import Image
-import time
 
-start = time.time()
+# Window dimensions
+W = 200
+H = 200
+# Camera settings
+S_RATIO = 1 / 50
+Z_START = 4
+OBSERVER = [0, 0, 2]
 
 # Schwarzschild radius
 M = 0.5
-ORIGIN = [0, 0, 0]
+ORIGIN = [0, 0, 5]
 BG = 5
 # Iterations
 STEPS = 100
 SIZE = 0.1
-
-# Window dimensions
-W = 300
-H = 300
-# Camera settings
-S_RATIO = (4*M)/W
-Z_START = 3
-OBSERVER = [0, 0, 4]
-
-
 
 # Blackhole color
 BLACK = [0, 0, 0]
@@ -67,7 +62,7 @@ for i in range(H):
         p = ray[i, j, :] - OBSERVER
         direction = p/np.linalg.norm(p)
         for a in range(STEPS):
-            if np.linalg.norm((ray[i, j, :] - ORIGIN)) <= 2*M:
+            if np.linalg.norm((ray[i, j, :] - ORIGIN)) <= M:
                 data[i, j, :] = BLACK
                 break
             elif np.linalg.norm((ray[i, j, :] - ORIGIN)) >= BG:
@@ -76,8 +71,6 @@ for i in range(H):
             else:
                 ray[i, j, :] += SIZE * direction
 
-print('Runtime = ', time.time()-start, 'seconds.')
-
 im = Image.fromarray(data)
 im.show()
-im = im.save("linear_render2.png")
+im = im.save("linear_render.png")
