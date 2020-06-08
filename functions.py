@@ -17,9 +17,9 @@ def Phi_g(M, r):
 
 def angle_rowwise(A, B):
     p1 = np.einsum('ij,ij->i', A, B)
-    p2 = np.linalg.norm(A, axis=1)
-    p3 = np.linalg.norm(B, axis=1)
-    p4 = p1 / (p2*p3)
+    p2 = np.einsum('ij,ij->i', A, A)
+    p3 = np.einsum('ij,ij->i', B, B)
+    p4 = p1 / np.sqrt(p2*p3)
     return np.arccos(np.clip(p4, -1.0, 1.0))
 
 
@@ -54,3 +54,23 @@ def RK4F(func, S, h, Phi):
     s4 = h*func(S + s3 + h, Phi)
 
     return S + s1/6 + s2/3 + s3/3 + s4/6
+
+
+def sqrnorm(vec):
+    return np.einsum('...i,...i', vec, vec)
+
+
+def norm(vec):
+    # you might not believe it, but this is the fastest way of doing this
+    # there's a stackexchange answer about this
+    return np.sqrt(np.einsum('...i,...i', vec, vec))
+
+
+def blendcolors(cb, balpha, ca, aalpha):
+
+    return ca + cb * (balpha*(1.-aalpha))[:, np.newaxis]
+
+
+# this is for the final alpha channel after blending
+def blendalpha(balpha, aalpha):
+    return aalpha + balpha*(1.-aalpha)
